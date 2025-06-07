@@ -1,25 +1,38 @@
-import traceback
-from flask import Flask, render_template, send_from_directory, abort
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
+import os
 
-app = Flask(__name__, static_folder='static', static_url_path='/static')
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # needed for flashing messages
 
+# Home route: renders your portfolio page
 @app.route('/')
 def home():
-    try:
-        return render_template('index.html')
-    except Exception as e:
-        app.logger.error(f"Exception in / route: {e}")
-        app.logger.error(traceback.format_exc())
-        abort(500)
+    return render_template('index.html')
 
-@app.route('/download-cv')
+# Contact form POST handler
+@app.route('/contact', methods=['POST'])
+def contact():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    message = request.form.get('message')
+
+    # Simple validation (you can expand this)
+    if not name or not email or not message:
+        flash('Please fill all fields in the contact form.')
+        return redirect(url_for('home') + '#contact')
+
+    # Here you could add email sending or saving message to a DB/file
+    print(f"New message from {name} ({email}): {message}")
+
+    flash('Thank you for your message! I will get back to you soon.')
+    return redirect(url_for('home') + '#contact')
+
+# Serve CV for download
+@app.route('/download_cv')
 def download_cv():
-    try:
-        return send_from_directory('static/files', 'cv.pdf', as_attachment=True)
-    except Exception as e:
-        app.logger.error(f"Exception in /download-cv route: {e}")
-        app.logger.error(traceback.format_exc())
-        abort(500)
+    # Make sure your CV PDF is saved under /static/files/shashika_cv.pdf
+    cv_dir = os.path.join(app.root_path, 'static', 'files')
+    return send_from_directory(cv_dir, 'shashika_cv.pdf', as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True)
